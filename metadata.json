@@ -1,0 +1,6 @@
+{
+  "name": "Law Student Focus",
+  "description": "A high-performance habit tracker and distraction-free deep-work timer tailored custom for law students studying, BRIEFING legal cases, and tracking workouts across desktop and mobile.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

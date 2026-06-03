@@ -1,0 +1,134 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Catch-all Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global helper rules
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for User
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128
+        && data.email is string && data.email.size() <= 256
+        && (!data.keys().hasAny(['displayName']) || (data.displayName is string && data.displayName.size() <= 128))
+        && (!data.keys().hasAny(['theme']) || (data.theme is string && data.theme.size() <= 64));
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().updatedAt == request.time;
+      allow update: if isOwner(userId) && isValidUser(incoming()) && incoming().updatedAt == request.time
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'theme', 'updatedAt']);
+    }
+
+    // Validation for Habits
+    function isValidHabit(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.name is string && data.name.size() <= 200
+        && data.category is string && (data.category == 'study' || data.category == 'workout')
+        && data.frequency is string && (data.frequency == 'daily' || data.frequency == 'weekly')
+        && data.completedDates is list && data.completedDates.size() <= 1000
+        && data.streak is int && data.streak >= 0;
+    }
+
+    match /habits/{habitId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(habitId) && incoming().userId == request.auth.uid && isValidHabit(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid
+        && isValidHabit(incoming()) && incoming().updatedAt == request.time
+        && incoming().createdAt == existing().createdAt
+        && incoming().id == existing().id
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['completedDates', 'streak', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'category', 'frequency', 'updatedAt'])
+        );
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Validation for TimerSessions
+    function isValidTimerSession(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.duration is int && data.duration >= 0
+        && data.type is string && (data.type == 'pomodoro' || data.type == 'short_break' || data.type == 'long_break' || data.type == 'custom')
+        && data.subject is string && data.subject.size() <= 200;
+    }
+
+    match /timerSessions/{sessionId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(sessionId) && incoming().userId == request.auth.uid && isValidTimerSession(incoming()) && incoming().completedAt == request.time;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Validation for CaseBriefs
+    function isValidCaseBrief(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.title is string && data.title.size() <= 300
+        && (!data.keys().hasAny(['citation']) || (data.citation is string && data.citation.size() <= 100))
+        && (!data.keys().hasAny(['facts']) || (data.facts is string && data.facts.size() <= 15000))
+        && (!data.keys().hasAny(['issue']) || (data.issue is string && data.issue.size() <= 10000))
+        && (!data.keys().hasAny(['holding']) || (data.holding is string && data.holding.size() <= 10000))
+        && (!data.keys().hasAny(['notes']) || (data.notes is string && data.notes.size() <= 20000));
+    }
+
+    match /caseBriefs/{briefId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(briefId) && incoming().userId == request.auth.uid && isValidCaseBrief(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid
+        && isValidCaseBrief(incoming()) && incoming().updatedAt == request.time
+        && incoming().createdAt == existing().createdAt
+        && incoming().id == existing().id
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'citation', 'facts', 'issue', 'holding', 'notes', 'updatedAt']);
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Validation for PagesRead
+    function isValidPagesRead(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.count is int && data.count > 0 && data.count <= 10000
+        && data.subject is string && data.subject.size() <= 200
+        && (!data.keys().hasAny(['notes']) || (data.notes is string && data.notes.size() <= 5000));
+    }
+
+    match /pagesRead/{entryId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(entryId) && incoming().userId == request.auth.uid && isValidPagesRead(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid
+        && isValidPagesRead(incoming()) && incoming().updatedAt == request.time
+        && incoming().createdAt == existing().createdAt
+        && incoming().id == existing().id
+        && incoming().diff(existing()).affectedKeys().hasOnly(['count', 'subject', 'notes', 'updatedAt']);
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

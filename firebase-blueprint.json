@@ -1,0 +1,219 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile with synchronization data and focus settings",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The unique Firebase Auth identifier of the user"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User full name or display name"
+        },
+        "theme": {
+          "type": "string",
+          "description": "Visual theme preset"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update"
+        }
+      },
+      "required": ["uid", "email"]
+    },
+    "Habit": {
+      "title": "Habit",
+      "description": "Individual daily habit tracked by the law student",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the habit"
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who owns the habit"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the study or workout habit"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["study", "workout"],
+          "description": "Category separating studies from workouts"
+        },
+        "frequency": {
+          "type": "string",
+          "enum": ["daily", "weekly"],
+          "description": "Expected frequency of completion"
+        },
+        "completedDates": {
+          "type": "array",
+          "description": "List of dates on which this habit was completed (YYYY-MM-DD)"
+        },
+        "streak": {
+          "type": "integer",
+          "description": "Count of consecutive days completed"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "name", "category", "completedDates"]
+    },
+    "TimerSession": {
+      "title": "Timer Session",
+      "description": "Logs of completed deep work and Pomodoro timer sessions",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique session identifier"
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who completed the session"
+        },
+        "duration": {
+          "type": "integer",
+          "description": "Duration completed in seconds"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["pomodoro", "short_break", "long_break", "custom"],
+          "description": "The category of focus block completed"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Legal subject or task name focus"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date and time the timer finished"
+        }
+      },
+      "required": ["id", "userId", "duration", "type", "completedAt"]
+    },
+    "CaseBrief": {
+      "title": "Case Brief",
+      "description": "Briefing sheet for law school cases created by the student",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique case brief ID"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner of the brief"
+        },
+        "title": {
+          "type": "string",
+          "description": "Name of the case (e.g. Marbury v. Madison)"
+        },
+        "citation": {
+          "type": "string",
+          "description": "Legal citation reference (e.g. 5 U.S. 137)"
+        },
+        "facts": {
+          "type": "string",
+          "description": "Key evidentiary and procedural facts of the case"
+        },
+        "issue": {
+          "type": "string",
+          "description": "Primary legal question presented"
+        },
+        "holding": {
+          "type": "string",
+          "description": "The rule or decision announced by the court"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Personal studying notes and exam takeaways"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "title"]
+    },
+    "PagesReadEntry": {
+      "title": "Pages Read Entry",
+      "description": "Specific log of number of pages read for a subject",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique reading log ID"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner of the log"
+        },
+        "count": {
+          "type": "integer",
+          "description": "Number of pages read"
+        },
+        "subject": {
+          "type": "string",
+          "description": "Subject studied"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional reading notes"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "count", "subject"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles managed by the uid"
+    },
+    "/habits/{habitId}": {
+      "schema": "Habit",
+      "description": "Habit list item queries matched with userId"
+    },
+    "/timerSessions/{sessionId}": {
+      "schema": "TimerSession",
+      "description": "Time logging records for analysis"
+    },
+    "/caseBriefs/{briefId}": {
+      "schema": "CaseBrief",
+      "description": "Constitutional and common law case study sheets"
+    },
+    "/pagesRead/{entryId}": {
+      "schema": "PagesReadEntry",
+      "description": "Pages read logs per subject"
+    }
+  }
+}
